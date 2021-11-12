@@ -1,18 +1,16 @@
 function out = LK_PermutationTest_OneSampleAgainstZero_20200708(cfg)
 %
 % LK_PermutationTest_OneSampleAgainstZero_20200708 performs cluster-based
-% permutation testing against zero for two-dimensional data (e.g., n x p).
-%
-% Note that the statistic is calculated across the first dimension of the
-% input data matrix.
-%
-% Use as: out = LK_PermutationTest_OneSampleAgainstZero_20200708(cfg);
+% permutation testing against zero.
 %
 % Input is a structure with fields
 %   mat             --> data matrix (n x p)
 % 	alpha           --> first-level and second-level alpha (e.g., 0.05)
-%   direction       --> hypothesized direction of the effect (pos | neg)
+%   direction       --> expected direction of the effect (pos | neg)
 %   numSurrogates   --> number of surrogates to create
+%
+% Note that the statistic is calculated across the first dimension of the
+% input data matrix.
 %
 % Output is a structure with fields
 %   clusStat            --> empirical cluster statistics
@@ -73,9 +71,9 @@ for iSurro = 1:cfg.numSurrogates
     % maximum cluster statistic
     if ~isempty(clusStatSurro)
         if strcmp(cfg.direction, 'pos')
-            maxClusStatSurro(iSurro, 1) = max(clusStatSurro); % maximum positive surrogate cluster statistic
+            maxClusStatSurro(iSurro, 1) = max(clusStatSurro); % maximum surrogate cluster statistic
         elseif strcmp(cfg.direction, 'neg')
-            maxClusStatSurro(iSurro, 1) = min(clusStatSurro); % maximum negative surrogate cluster statistic
+            maxClusStatSurro(iSurro, 1) = min(clusStatSurro); % minimum surrogate cluster statistic
         end
     end
 end
@@ -85,8 +83,8 @@ end
 % determine significance of each empirical cluster statistics
 clusStatRanks   = nan(numel(clusStat), 1); % rank of each empirical cluster
 clusStatP       = nan(numel(clusStat), 1); % p-value of each empirical cluster
-bSigClusStat    = false(numel(clusStat), 1); % boolean indicating the significant clusters
-logIdxSigClus   = false(1, numel(LEmp)); % boolean indicating the significant bins
+bSigClusStat    = false(numel(clusStat), 1); % significant clusters
+logIdxSigClus   = false(1, numel(LEmp));
 for iClusStat = 1:numel(clusStat)
     
     % rank of empirical statistic within surrogate statistics
@@ -95,8 +93,8 @@ for iClusStat = 1:numel(clusStat)
     elseif strcmp(cfg.direction, 'neg')
         clusStatRanks(iClusStat, 1) = sum(clusStat(iClusStat, 1) < maxClusStatSurro) / numel(maxClusStatSurro); % significantly below the surrogates?
     end
-    clusStatP(iClusStat, 1)     = 1 - clusStatRanks(iClusStat, 1); % p-value = 1 - rank
-    bSigClusStat(iClusStat, 1)  = clusStatP(iClusStat, 1) < cfg.alpha; % whether the p-value is below the alpha level
+    clusStatP(iClusStat, 1)     = 1 - clusStatRanks(iClusStat, 1);
+    bSigClusStat(iClusStat, 1)  = clusStatP(iClusStat, 1) < cfg.alpha;
     
     % columns of significant clusters
     if bSigClusStat(iClusStat, 1) == true
@@ -104,15 +102,11 @@ for iClusStat = 1:numel(clusStat)
     end
 end
 
-% maximum positive/negative cluster statistic
-if strcmp(cfg.direction, 'pos')
-    [maxClusStat, maxClusIdx]   = max(clusStat);
-elseif strcmp(cfg.direction, 'neg')
-    [maxClusStat, maxClusIdx]   = min(clusStat);
-end
+% maximum cluster statistic
+[maxClusStat, maxClusIdx]   = max(clusStat);
 if isempty(maxClusStat)
-    maxClusStat                 = nan;
-    maxClusIdx                  = nan;
+    maxClusStat             = nan;
+    maxClusIdx              = nan;
 end
 
 % identify location of maximum cluster
